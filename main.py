@@ -152,6 +152,16 @@ async def play(ctx, url = None):
   # await ctx.send(ctx.message.author.voice.channel)
   # await ctx.send("plays")
 
+@bot.command(pass_context = True)
+async def pause(ctx):
+  if(ctx.voice_client):
+    await ctx.voice_client.pause()
+
+@bot.command(pass_context = True)
+async def resume(ctx):
+  if(ctx.voice_client):
+    await ctx.voice_client.resume()
+
 
 
 @bot.command(pass_context = True)
@@ -222,8 +232,8 @@ async def on_voice_state_update(self, member, before, after):
 #   vc = ctx.voice_client
 
 keep_alive()
-bot.run(os.getenv('TOKEN'))
-client.run(os.getenv('TOKEN'))
+bot.run(os.getenv('NEWTOKEN'))
+client.run(os.getenv('NEWTOKEN'))
 
 
 
