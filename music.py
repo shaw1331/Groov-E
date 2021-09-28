@@ -3,6 +3,7 @@ import pafy
 import asyncio  
 import discord
 from discord.ext import commands
+import FFmpeg
 
 class User(commands.Cog):
   def __init__(self,bot):
