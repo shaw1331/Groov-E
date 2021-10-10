@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 import os
+import urllib.request
+import re
 from keep_alive import keep_alive
 import youtube_dl
 import asyncio
@@ -22,6 +24,7 @@ async def on_ready():
     print("Bot is ready!")
     # await ctx.guild.voice_client.disconnect()
     await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=' THELITƎ'))
+    
 
 # ------------------------------------------------------------------------------------   
 
@@ -86,28 +89,14 @@ async def dm(ctx, user : discord.User ,*,arg = None):
 # async def help(ctx):
 
 
-# asdsd
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ###############################################################################################################################
-@bot.command(pass_context = True)
+queue = []
+source =""
+current = 0
+FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+YDL_OPTIONS = {'format': "bestaudio"}
+@bot.command(pass_context = True, aliases=['p'])
 async def play(ctx, url = None):
   if(ctx.author.voice):
     # if(ctx.voice_client.channel!=ctx.author.voice.channel):
@@ -122,19 +111,29 @@ async def play(ctx, url = None):
     if(ctx.voice_client):
       if ctx.author.voice.channel and ctx.author.voice.channel == ctx.voice_client.channel:
         if(url):
+          # async with ctx.typing():
+          #   player = await YTDLSource.from_url(queue[0], loop=client.loop)
+          #   voice_channel.play(player, after=lambda e: print('Player error: %s' % e) if e else None)
+
+          # await ctx.send('**Now playing:** {}'.format(player.title))
+          # del(queue[0])
+
+
           ctx.voice_client.stop()
-          FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-          YDL_OPTIONS = {'format': "bestaudio"}
+          
           vc = ctx.voice_client
 
           with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
+            # global current
             info = ydl.extract_info(url, download = False)
             url2 = info['formats'][0]['url']
             source = await discord.FFmpegOpusAudio.from_probe(url2,**FFMPEG_OPTIONS)
+            # player = await YTDLSource.from_url(url2)
             # source = discord.FFmpegPCMAudio("one.mp3")
             vc.play(source)
-            annc = ">>> Now playing {}".format(url)
-            await ctx.send(annc)
+            # annc = ">>> Now playing {}".format(source)
+            await ctx.send(url)
+            # current = current + 1
             # block_text = 
             # embed=discord.Embed(title=player.current.title,url=f"https://youtube.com/watch?v={player.current.identifier}")
       else:
@@ -143,28 +142,127 @@ async def play(ctx, url = None):
   else:
     await ctx.send("Join a fooking voice channel " + str(ctx.author.mention) + "!!")
 
-  # await ctx.send(ctx.author.voice)
-  # await ctx.send("ctx.author.voice")
-  # await ctx.send(ctx.voice_client.channel)
-  # await ctx.send("cdawwwwwwdd")
-  # await ctx.send(ctx.author.voice.channel)
-  # await ctx.send("ctxaadsce")
-  # await ctx.send(ctx.message.author.voice.channel)
-  # await ctx.send("plays")
+@bot.command()
+async def q(ctx, url):
+    global queue
 
-@bot.command(pass_context = True)
+    queue.append(url)
+    await ctx.send(f'`{url}` added to `{queue}`!')
+
+@bot.command()
+async def clear(ctx):
+    global queue
+
+    queue = []
+@bot.command()
+async def confess(ctx):
+  await ctx.send(str(ctx.author.mention) + "loves you to the moon!!! <3 ")
+@bot.command()
+async def start(ctx):
+  global queue
+  global current
+
+  channel = ctx.message.author.voice.channel
+  await ctx.send("Joining " + str(ctx.author.voice.channel) + " channel")
+  await channel.connect()
+  ctx.voice_client.stop()
+  vc = ctx.voice_client
+
+  for i in queue:
+    with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
+      global current
+      info = ydl.extract_info(i, download = False)
+      url2 = info['formats'][0]['url']
+      source = await discord.FFmpegOpusAudio.from_probe(url2,**FFMPEG_OPTIONS)
+      # player = await YTDLSource.from_url(url2)
+      # source = discord.FFmpegPCMAudio("one.mp3")
+      vc.play(source)
+      annc = ">>> Now playing {}".format(source)
+      await ctx.send(annc)
+      # if(player.is_playing()):
+      #   await asyncio.sleep(duration)
+      # current = current + 1
+      # block_text = 
+      # embed=discord.Embed(title=player.current.title,url=f"https://youtube.com/watch?v={player.current.identifier}")
+
+@bot.command()
+async def loop(ctx):
+  vc = ctx.voice_client
+  vc.play(source)
+  await ctx.message.add_reaction("Looping current song")
+
+@bot.command(aliases = ["seach", "Serch", "seech"])
+async def search(ctx, *,search):
+  search = search.replace(" ","+")
+  response = urllib.request.urlopen("https://www.youtube.com/results?search_query=" + search)
+  # print("hhtps://www.youtube.com/results?search_query=" + search)
+  pattern = re.compile("watch\?v=[\w-]+")
+  links = re.findall(pattern, response.read().decode())
+  url = "https://youtube.com/" + links[0]
+  # if search == None:
+  #   ctx.send("Enter text to search")
+  # else:
+    # query_string = urllib.parse.urlencode({
+    #   'search_query' : search
+    # })
+    # htm_content = urllib.request.urlopen(
+    #   'https://www.youtube.com/results?' + query_string
+    # )
+    # search_results = re.findall(r"href=\"\\/watch\\?v=(.{11})",htm_content.read().decode())
+    # await ctx.send(len(search_results))
+  # await ctx.send(url)
+
+  if(ctx.author.voice):
+    # if(ctx.voice_client.channel!=ctx.author.voice.channel):
+    #   await ctx.send("Already in a voice channel")
+    # else:
+      # source = discord.FFmpegPCMAudio('one.mp3')
+      # ch = ctx.voice_client
+    if(ctx.voice_client==None):
+      channel = ctx.message.author.voice.channel
+      await ctx.send("Joining " + str(ctx.author.voice.channel) + " channel")
+      await channel.connect()
+    if(ctx.voice_client):
+      if ctx.author.voice.channel and ctx.author.voice.channel == ctx.voice_client.channel:
+        if(url):
+          ctx.voice_client.stop()
+          vc = ctx.voice_client
+          with youtube_dl.YoutubeDL(YDL_OPTIONS) as ydl:
+            # global current
+            info = ydl.extract_info(url, download = False)
+            url2 = info['formats'][0]['url']
+            source = await discord.FFmpegOpusAudio.from_probe(url2,**FFMPEG_OPTIONS)
+            # player = await YTDLSource.from_url(url2)
+            # source = discord.FFmpegPCMAudio("one.mp3")
+            vc.play(source)
+            annc = ">>> Now playing {}".format(url)
+            await ctx.send(annc)
+            # current = current + 1
+            # block_text = 
+            # embed=discord.Embed(title=player.current.title,url=f"https://youtube.com/watch?v={player.current.identifier}")
+      else:
+        await ctx.send("Currently playing in " + str(ctx.voice_client.channel))
+        # await ch.play(source)
+  else:
+    await ctx.send("Join a fooking voice channel " + str(ctx.author.mention) + "!!")
+
+
+@bot.command(aliases=['stop'])
 async def pause(ctx):
-  if(ctx.voice_client):
-    await ctx.voice_client.pause()
+  emoji = '\N{DOUBLE VERTICAL BAR}'
+  await ctx.message.add_reaction(emoji)
+  ctx.voice_client.pause()
 
-@bot.command(pass_context = True)
+@bot.command()
 async def resume(ctx):
-  if(ctx.voice_client):
-    await ctx.voice_client.resume()
+  emoji = '\N{Black Right-Pointing Triangle}'
+  await ctx.message.add_reaction(emoji)
+  ctx.voice_client.resume()
+    
 
 
 
-@bot.command(pass_context = True)
+@bot.command(pass_context = True, aliases=['leave'])
 async def quit(ctx):
   if(ctx.voice_client!=None):
     await ctx.guild.voice_client.disconnect()
@@ -192,13 +290,20 @@ async def quit(ctx):
 
 
 ###############################################################################################################################
-@bot.command()
+@bot.command(aliases = ["hi","Hi", "Hello"])
 async def hello(ctx, message = None):
   channel = ctx.channel
   if(message):
     await channel.send("Hello, " + str(ctx.author.mention) + str(message) + "!!")
+    # await channel.add_reaction(ctx.message,)
+    # emoji = '\N{THUMBS UP SIGN}'
+    # await ctx.message.add_reaction(emoji)
+    # await channel.send(ctx.message.content)
   else:
     await channel.send("Hello, " + str(ctx.author.mention) + "!!")
+  # await ctx.send("1) " + message)
+  # await ctx.send("2) " + url)
+
 
 
 
@@ -234,6 +339,15 @@ async def on_voice_state_update(self, member, before, after):
 keep_alive()
 bot.run(os.getenv('NEWTOKEN'))
 client.run(os.getenv('NEWTOKEN'))
+
+
+
+
+
+
+
+
+
 
 
 

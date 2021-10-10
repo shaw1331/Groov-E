@@ -2,6 +2,7 @@ import youtube_dl
 import pafy
 import asyncio  
 import discord
+import main.py
 from discord.ext import commands
 import FFmpeg
 
@@ -34,6 +35,7 @@ class User(commands.Cog):
       await ctx.voice_client.disconnect()
 
     await ctx.author.voice.channel.connect()
+
 
   @commands.command()
   async def leave(self,ctx):
